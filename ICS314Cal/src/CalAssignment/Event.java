@@ -61,7 +61,7 @@ public class Event {
 	}
 	
 	public void setStart( String date ){
-		if(Interface.getTzInfo()) {
+		if(date.contains("TZID")) {
 			eventStartTime = new StringBuilder()
 					.append("DTSTART;")
 					.append(date)
@@ -111,7 +111,7 @@ public class Event {
 	}
 	
 	public void setEnd( String date ){
-		if(Interface.getTzInfo()) {
+		if(date.contains("TZID")) {
 		eventEndTime = new StringBuilder()
 				.append("DTEND;")
 				.append(date)
