@@ -1,102 +1,42 @@
 package CalAssignment;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 
-/**
- * CalObj class
- * 
- */
-public class CalObj 
-{
-	
-	private String version =  	"VERSION:1.0\r\n";
-	private String prodid = 	"PRODID://Elara/lofy/tanare/delp/314sum2015//\r\n";
-	private String calBegin =  	"BEGIN:VCALENDAR\r\n";
-	private String calEnd =  	"END:VCALENDAR\r\n";
-	private String eventBegin = "BEGIN:VEVENT\r\n";
-	private String eventEnd =   "END:VEVENT\r\n";
-	
-	private String eventSummary;
-	private String eventStartTime;
-	private String eventEndTime;
-	private String eventUid;
-	private String eventTimezone;
-	private String eventGeoPos;
-	private String eventClass;
-		
-	//kept these from eariler draft
-	private String[] location;
-	private Float lat;//latitude used for geographic position
-	private Float lon;//longitude used for geographic position
-	
-	
-	public void setSummary( String summary){
-		StringBuilder builder = new StringBuilder();
-		builder.append("SUMMARY:");
-		builder.append(summary);
-		builder.append("\r\n");
-		eventSummary = builder.toString();
-		
-		
-	}
-	
-	public void setStart( String time){
-		StringBuilder builder = new StringBuilder();
-		builder.append("DTSTART:");
-		builder.append(time);
-		builder.append("\r\n");
-		eventStartTime = builder.toString();
-		
-	}
-	
-	public void setEnd(String time){
-		StringBuilder builder = new StringBuilder();
-		builder.append("DTEND:");
-		builder.append(time);
-		builder.append("\r\n");
-		eventEndTime = builder.toString();
-		
-	}
-	
-	public void setUID( String uid){
-		StringBuilder builder = new StringBuilder();
-		builder.append("UID:");
-		builder.append(uid);
-		builder.append("\r\n");
-		eventUid = builder.toString();
-		
-	}
-	
-	public void setTimeZone(String tz){
-		
-	}
-	
-	public void setGeographicPosition(String geoPos){
-		
-	}
-	
-	public void setClassification(String cla ){
-		
-	}
-	
 
-public void write( String name ){
+public class CalObj {
+	
+	private String 
+		version    = "VERSION:1.0\r\n", 
+		prodid     = "PRODID://Elara/lofy/tanare/delp/314sum2015//\r\n",
+		calBegin   = "BEGIN:VCALENDAR\r\n",
+		calEnd     = "END:VCALENDAR\r\n",
+		eventBegin = "BEGIN:VEVENT\r\n",
+		eventEnd   = "END:VEVENT\r\n";
+	private ArrayList<Event> eventArray = new ArrayList<>();
+	
+	//Adds event to CalObj event array list
+	public void addEvent(Event e){
+		eventArray.add(e);
+	}
+	
+	//Writes CalObj to .ics file
+	//Takes filename in 
+	public void write(String name){
 		
 		StringBuilder builder = new StringBuilder();
 		builder.append(name);
 		builder.append(".ics");
 		
 		try {
-			
- 
 			File file = new File(builder.toString());
  
-			// if file doesnt exists, then create it
+			// if file doesn't exists, then create it
 			if (!file.exists()) {
 				file.createNewFile();
 			}
@@ -106,22 +46,106 @@ public void write( String name ){
 			bw.write(calBegin);
 			bw.write(version);
 			bw.write(prodid);
-			bw.write(eventBegin);
-			bw.write(eventUid);
-			bw.write(eventStartTime);
-			bw.write(eventEndTime);
-			bw.write(eventSummary);
-			bw.write(eventEnd);
+			
+			for (int i = 0; i < eventArray.size(); i++) {
+				Event e = eventArray.get(i);
+				bw.write(eventBegin);
+				bw.write( e.getEventUid() );
+				bw.write( e.getEventStartTime() );
+				bw.write( e.getEventEndTime() );
+				bw.write( e.getEventSummary() );				
+				if(Interface.getGeoInfo()) {
+					bw.write( e.getEventGeoPos() );
+				}
+				if(Interface.getClassInfo()) {
+					bw.write( e.getEventClass() );
+				}				
+	            bw.write(eventEnd);
+	        }
 			bw.write(calEnd);
-			
-			
 			bw.close();
- 
 			System.out.println("Done");
  
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
+	
+	public void read(String name){
+
+		String line;
+		String[] tokens;
+		File file = new File(name); 
+		ArrayList<String> stringArray = new ArrayList<>();
+		try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+
+			line = br.readLine();
+			while ((line = br.readLine()) != null) {
+				stringArray.add(line);
+			}
+			
+			for (int i = 0; i < stringArray.size(); i++) {
+				String s = stringArray.get(i);
+				System.out.println(s);
+				
+				if (s.equals("BEGIN:VEVENT")){
+					
+					System.out.println("Started Reading in event\n");
+					Event e = new Event();
+					while(s.equals("END:VEVENT") == false){
+						
+						i++;
+						s = stringArray.get(i);
+						tokens = s.split("[:;=]+", 2);
+						System.out.println("0: " +tokens[0] + " 1: " +tokens[1]);
+						//Proccess Adding Event Pieces
+						if(tokens[0].equals("UID")){
+							e.setUID(tokens[1]);
+							System.out.println(tokens[1]);
+						}
+						else if(tokens[0].equals("SUMMARY")){
+							e.setSummary(tokens[1]);
+							System.out.println(tokens[1]);
+						}
+						else if(tokens[0].equals("DTSTART")){
+							e.setStart(tokens[1]);
+							System.out.println(tokens[1]);
+						}
+						else if(tokens[0].equals("DTEND")){
+							e.setEnd(tokens[1]);
+							System.out.println(tokens[1]);
+						}
+						else if(tokens[0].equals("TZID")){
+							e.setTimeZone(tokens[1]);
+							System.out.println(tokens[1]);
+						}
+						else if(tokens[0].equals("GEO")){
+							e.setGeographicPosition(tokens[1]);
+							System.out.println(tokens[1]);
+						}
+						else if(tokens[0].equals("CLASS")){
+							e.setClassification(tokens[1]);
+							System.out.println(tokens[1]);
+						}
+						
+						//System.out.println(s);
+						
+					}
+					this.addEvent(e);
+					System.out.println("\nEnded Reading in event\n");
+				}
+				
+				
+			}
+			
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+		       
+		   
+		
 	
 }
